@@ -1,3 +1,19 @@
+var exec = require('child_process').exec;
+
+speak = function(text, options, callback) {
+  exec('espeak ' + (options? options : "-v german") + ' "' + text + '"',function(error, stdout, stderr) {
+      //console.log(stdout);
+      console.log("said " + text)
+      if (callback) callback(error, stdout, stderr)
+  });  
+}
+
+speak_system = function(text, options, callback) {
+  speak(text, (options? options : "-v default"), callback)
+}
+
+speak_system("o.k.")
+
 var fs = require('fs')
 var path = require('path');
 
@@ -5,9 +21,11 @@ var Gpio = require('onoff').Gpio,
   led = new Gpio(24, 'low'),
   playButton = new Gpio(18, 'in', 'both',{ debounceTimeout: 200 });
   stopButton = new Gpio(27, 'in', 'both',{ debounceTimeout: 200 });
+  nextButton = new Gpio(23, 'in', 'both',{ debounceTimeout: 200 });
 
 playButtonCount = 0
 stopButtonCount = 0
+nextButtonCount = 0
 
 state="stop" // pause,play,stop
 videos=[] // take from directory
@@ -19,6 +37,7 @@ function exit() {
   led.unexport();
   playButton.unexport();
   stopButton.unexport();
+  nextButton.unexport();
   process.exit();
 }
  
@@ -52,6 +71,23 @@ stopButton.watch(function (err, value) {
     switch(state) {
       case "play":  changeState("stop"); break
       case "pause": changeState("stop");  break
+      case "stop":  changeState("prev");  break
+    }
+  }    
+ 
+});
+
+nextButton.watch(function (err, value) {
+  if (err) {
+    throw err;
+  }
+  
+  if (value==0) {
+    nextButtonCount++
+    console.log("nextbutton=" + nextButtonCount)
+    switch(state) {
+      case "play":  changeState("next"); break
+      case "pause": changeState("next");  break
       case "stop":  changeState("next");  break
     }
   }    
@@ -78,7 +114,13 @@ function changeState(newstate) {
   }
 
   if (oldstate == "stop" && newstate == "play") {
-    omx.start(videosPrefix + videos[videoIndex])
+    speak_system("play")
+    omx.start(videosPrefix + videos[videoIndex],function(){
+      changeState("stop")
+      if (state=="play") {
+        speak_system("end")
+      }
+    })
     console.log("playing " + videosPrefix + videos[videoIndex])
   }
 
@@ -95,12 +137,36 @@ function changeState(newstate) {
     videoIndex++
     if (videoIndex >= videos.length) videoIndex = 0
     console.log("vid: " + videos[videoIndex])
+    speak(videos[videoIndex].split(".")[0].split(" ")[0])
+    changeState("stop")
+    return
+  }
+
+  if ((oldstate == "play" || oldstate == "pause") && newstate == "next") {
+    omx.quit()
+    updateMediaFiles()
+    videoIndex++
+    if (videoIndex >= videos.length) videoIndex = 0
+    console.log("vid: " + videos[videoIndex])
+    speak(videos[videoIndex].split(".")[0].split(" ")[0])
+    changeState("stop")
+    return
+  }
+
+  if (oldstate == "stop" && newstate == "prev") {
+    updateMediaFiles()
+    videoIndex--
+    if (videoIndex < 0) videoIndex = videos.length-1
+    console.log("vid: " + videos[videoIndex])
+    speak(videos[videoIndex].split(".")[0].split(" ")[0])
     changeState("stop")
     return
   }
 
   if (oldstate = "next" && newstate == "stop") {
+  }
 
+  if (oldstate = "prev" && newstate == "stop") {
   }
 
   state = newstate
@@ -125,8 +191,13 @@ function LEDaction(newstate) {
 
   if (newstate == "next") {
     blinkCounter = 0
-    blinker = setInterval(blinkIt,50,2)
+    blinker = setInterval(blinkIt,50,1)
   }    
+
+  if (newstate == "prev") {
+    blinkCounter = 0
+    blinker = setInterval(blinkIt,50,2)
+  }      
 }
 
 blinkIt = function(max){
@@ -136,8 +207,18 @@ blinkIt = function(max){
   blinkCounter++
 }
 
+var express = require('express')
+var app = express()
+ 
+app.get('/', function (req, res) {
+  res.send('Cyborgplayer')
+})
+ 
+app.listen(3000)
+
 omx = require('omxcontrol');
 
+app.use(omx());
 
 function getFiles(srcpath) {
   return fs.readdirSync(srcpath).filter(function(file) {
@@ -155,7 +236,7 @@ function getMediaFiles() {
 }
 
 function updateMediaFiles() {
-  newvideos = getMediaFiles()
+  newvideos = getMediaFiles().sort()
   if (videos.length == newvideos.length
       && videos.every(function(u, i) {
           return u === newvideos[i];
