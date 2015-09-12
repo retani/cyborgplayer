@@ -1,4 +1,4 @@
-master_network_address = "localhost"//cyborgmaster
+master_network_address = "192.168.0.102"
 
 raspberries = {
   1: {
@@ -50,8 +50,8 @@ videoIndex=0
 videoIndexMapping=[]
 backupVideoIndex=0
 
-//var videosPrefix="/home/pi/cyborg/media/"
-var videosPrefix="/Users/holger/Documents/Projekte/gluehland/cyborgplayer/cyborgmaster/public/media/"
+var videosPrefix="/home/pi/cyborg/media/"
+//var videosPrefix="/Users/holger/Documents/Projekte/gluehland/cyborgplayer/cyborgmaster/public/media/"
 
 function exit() {
   led.unexport();
@@ -364,7 +364,7 @@ raspberryNumber = 1
 var os = require('os');
 var ifaces = os.networkInterfaces();
 
-ifaces.en1.forEach(function (iface) {
+ifaces.wlan0.forEach(function (iface) {
   if ('IPv4' !== iface.family || iface.internal !== false) {
     // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
     return;
@@ -386,7 +386,7 @@ var DDPClient = require("ddp");
 
 var ddpclient = new DDPClient({
   // All properties optional, defaults shown
-  host : "localhost",
+  host : master_network_address,
   port : 3000,
   ssl  : false,
   autoReconnect : true,
