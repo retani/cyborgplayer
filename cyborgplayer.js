@@ -299,6 +299,11 @@ app.use(omx());
 */
 
 updatePlaylist = function() {
+
+  videoIndexMapping = Array.apply(null, Array(videos.length)).map(function (_, i) {return i;});
+  return //////////////////////////////////////////////////////////////////////////////////// DISABLED
+
+
   if (!ddpclient || !ddpclient.collections || !ddpclient.collections.mediaavail || ddpclient.collections.mediaavail.length == 0) {
     videoIndexMapping = Array.apply(null, Array(videos.length)).map(function (_, i) {return i;});
   }
@@ -453,7 +458,7 @@ ddpclient.connect(function(error, wasReconnect) {
     console.log("[ADDED] to " + observer.name + ":  " + id);
   };
   observer.changed = function(id, oldFields, clearedFields, newFields) {
-    return ///////////////////////////////////////////////////////////////////////// DISABLED
+    //return ///////////////////////////////////////////////////////////////////////// DISABLED
     console.log("[CHANGED] in " + observer.name + ":  " + id);
     console.log("[CHANGED] old field values: ", oldFields);
     console.log("[CHANGED] cleared fields: ", clearedFields);
@@ -517,6 +522,8 @@ ddpclient.connect(function(error, wasReconnect) {
 })
 
 function getMappingIndex() {
+  console.log("getMappingIndex " + videoIndex + " -> " + videoIndexMapping.indexOf(videoIndex))
+  console.log(videos, videoIndexMapping)  
   if (videoIndexMapping.indexOf(videoIndex) >= 0)
     return videoIndexMapping.indexOf(videoIndex)
   else if (videoIndexMapping.indexOf(backupVideoIndex) >= 0)
