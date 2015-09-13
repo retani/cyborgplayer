@@ -128,7 +128,7 @@ function changeState(newstate) {
   LEDaction(newstate)
 
   if (oldstate == "play" && newstate == "pause") {
-    speak_system("pause")
+    //speak_system("pause")
     omx.pause()
   }
 
@@ -161,14 +161,14 @@ function changeState(newstate) {
   if (oldstate == "stop" && newstate == "next") {
     updateMediaFiles()
     var index = getMappingIndex()
-    if (videoIndexMapping.length >= index+1) {
+    if (videoIndexMapping.length > index+1) {
       videoIndex = videoIndexMapping[index+1]
     }
     else {
       videoIndex=0  
     }
-    console.log("vid: " + videos[videoIndex])
-    speak(videos[videoIndex].split(".")[0].split(" ")[0])
+    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    announce_video()
     changeState("stop")
     return
   }
@@ -177,14 +177,14 @@ function changeState(newstate) {
     omx.quit()
     updateMediaFiles()
     var index = getMappingIndex()
-    if (videoIndexMapping.length >= index+1) {
+    if (videoIndexMapping.length > index+1) {
       videoIndex = videoIndexMapping[index+1]
     }
     else {
       videoIndex=0  
     }
-    console.log("vid: " + videos[videoIndex])
-    speak(videos[videoIndex].split(".")[0].split(" ")[0])
+    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    announce_video()
     changeState("stop")
     return
   }
@@ -198,8 +198,9 @@ function changeState(newstate) {
     else {
       videoIndex=videoIndexMapping[videoIndexMapping.length-1]
     }
-    console.log("vid: " + videos[videoIndex])
-    speak(videos[videoIndex].split(".")[0].split(" ")[0])
+    if (videoIndex > videos.length-1) videoIndex = videos.length-1
+    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    announce_video()
     changeState("stop")
     return
   }
@@ -518,4 +519,9 @@ function getMappingIndex() {
   else if (videoIndexMapping.indexOf(backupVideoIndex) >= 0)
     return videoIndexMapping.indexOf(backupVideoIndex)
   else return 0
+}
+
+function announce_video() {
+  //speak(videos[videoIndex].split(".")[0].split(" ")[0])
+  speak(videos[videoIndex].substr(0,videos[videoIndex].length-4))
 }
