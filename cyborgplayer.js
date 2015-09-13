@@ -1,5 +1,20 @@
 master_network_address = "localhost"//cyborgmaster
 
+raspberries = {
+  1: {
+    id:"r1",
+    ip: "192.168.0.10"
+  },
+  2: {
+    id:"r2",
+    ip: "192.168.0.11"
+  },
+  3:{
+    id:"r3",
+    ip: "192.168.0.12"
+  },
+}
+
 var exec = require('child_process').exec;
 
 speak = function(text, options, callback) {
@@ -19,12 +34,12 @@ speak_system("o.k.")
 var fs = require('fs')
 var path = require('path');
 
-/*var Gpio = require('onoff').Gpio,
+var Gpio = require('onoff').Gpio,
   led = new Gpio(24, 'low'),
   playButton = new Gpio(18, 'in', 'both',{ debounceTimeout: 200 });
   stopButton = new Gpio(27, 'in', 'both',{ debounceTimeout: 200 });
   nextButton = new Gpio(23, 'in', 'both',{ debounceTimeout: 200 });
-*/
+
 playButtonCount = 0
 stopButtonCount = 0
 nextButtonCount = 0
@@ -49,7 +64,6 @@ function exit() {
  
 console.log("OK")
 
-/*
 playButton.watch(function (err, value) {
   if (err) {
     throw err;
@@ -100,7 +114,7 @@ nextButton.watch(function (err, value) {
   }    
  
 });
-*/
+
 process.on('SIGINT', exit);
 
 function changeState(newstate) {
@@ -344,21 +358,6 @@ function updateMediaFiles() {
 updateMediaFiles()
 
 /*************** IP ****************/
-
-raspberries = {
-  1: {
-    id:"r1",
-    ip: "192.168.0.10"
-  },
-  2: {
-    id:"r2",
-    ip: "192.168.0.11"
-  },
-  3:{
-    id:"r3",
-    ip: "192.168.0.12"
-  },
-}
 
 raspberryNumber = 1
 
