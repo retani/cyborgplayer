@@ -365,19 +365,21 @@ raspberryNumber = 1
 var os = require('os');
 var ifaces = os.networkInterfaces();
 
-ifaces.wlan0.forEach(function (iface) {
-  if ('IPv4' !== iface.family || iface.internal !== false) {
-    // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
-    return;
-  }
-
-  for (var r in raspberries) {
-    if (raspberries[r].ip == iface.address) {
-      raspberryNumber = r
+if (ifaces.wlan0) {
+  ifaces.wlan0.forEach(function (iface) {
+    if ('IPv4' !== iface.family || iface.internal !== false) {
+      // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+      return;
     }
-  }
 
-})
+    for (var r in raspberries) {
+      if (raspberries[r].ip == iface.address) {
+        raspberryNumber = r
+      }
+    }
+
+  })
+}
 
 console.log ("This is cyborgplayer number " + raspberryNumber)
 
@@ -451,6 +453,7 @@ ddpclient.connect(function(error, wasReconnect) {
     console.log("[ADDED] to " + observer.name + ":  " + id);
   };
   observer.changed = function(id, oldFields, clearedFields, newFields) {
+    return ///////////////////////////////////////////////////////////////////////// DISABLED
     console.log("[CHANGED] in " + observer.name + ":  " + id);
     console.log("[CHANGED] old field values: ", oldFields);
     console.log("[CHANGED] cleared fields: ", clearedFields);
