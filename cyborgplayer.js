@@ -124,9 +124,9 @@ function changeState(newstate) {
 
   console.log(oldstate + " -> " + newstate)
 
-/*
+
   LEDaction(newstate)
-*/
+
   if (oldstate == "play" && newstate == "pause") {
     speak_system("pause")
     omx.pause()
