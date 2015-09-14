@@ -1,4 +1,4 @@
-master_network_address = "192.168.0.102"
+master_network_address = "192.168.0.100"
 
 raspberries = {
   1: {
@@ -117,7 +117,7 @@ nextButton.watch(function (err, value) {
 
 process.on('SIGINT', exit);
 
-function changeState(newstate) {
+function changeState(newstate, notransmit) {
   var oldstate = state
 
   if (oldstate == newstate) return
@@ -167,10 +167,11 @@ function changeState(newstate) {
     else {
       videoIndex=0  
     }
+    console.log("next - new index ", getMappingIndex(), videoIndex)
     console.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
-    changeState("stop")
-    return
+    newstate = "stop"
+    //return
   }
 
   if ((oldstate == "play" || oldstate == "pause") && newstate == "next") {
@@ -185,8 +186,8 @@ function changeState(newstate) {
     }
     console.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
-    changeState("stop")
-    return
+    newstate = "stop"
+    //return
   }
 
   if (oldstate == "stop" && newstate == "prev") {
@@ -201,8 +202,8 @@ function changeState(newstate) {
     if (videoIndex > videos.length-1) videoIndex = videos.length-1
     console.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
-    changeState("stop")
-    return
+    newstate = "stop"
+    //return
   }
 
   if (oldstate = "next" && newstate == "stop") {
@@ -213,36 +214,39 @@ function changeState(newstate) {
 
   state = newstate
 
-  if (ddpclient && ddpclient.collections && ddpclient.collections.players) {
-    var remotevideo = ddpclient.collections.players[raspberries[raspberryNumber].id].filename
-    if (videos[videoIndex] != remotevideo) {
-      console.log("transmitting new media " + videos[videoIndex])
-      ddpclient.call(
-        'setFilename',             // name of Meteor Method being called
-        [{playerId : raspberries[raspberryNumber].id, filename: videos[videoIndex]}], // parameters to send to Meteor Method
-        function (err, result) {   // callback which returns the method call results
-          console.log('called function, result: ' + result);
-        },
-        function () {              // callback which fires when server has finished
-          console.log('updated');  // sending any updated documents as a result of
-          console.log(ddpclient.collections.posts);  // calling this method
-        }
-      );
-    }    
-    var remotestate = ddpclient.collections.players[raspberries[raspberryNumber].id].state
-    if (remotestate != newstate && newstate != "next" && newstate != "prev") {
-      console.log("transmitting new state " + newstate)
-      ddpclient.call(
-        'setState',             // name of Meteor Method being called
-        [{playerId : raspberries[raspberryNumber].id, state: newstate}], // parameters to send to Meteor Method
-        function (err, result) {   // callback which returns the method call results
-          console.log('called function, result: ' + result);
-        },
-        function () {              // callback which fires when server has finished
-          console.log('updated');  // sending any updated documents as a result of
-          console.log(ddpclient.collections.posts);  // calling this method
-        }
-      );
+  if (!notransmit) {
+    if (ddpclient && ddpclient.collections && ddpclient.collections.players) {
+      var remotevideo = ddpclient.collections.players[raspberries[raspberryNumber].id].filename
+      console.log("remotevideo",remotevideo)
+      if (videos[videoIndex] != remotevideo) {
+        console.log("transmitting new media " + videos[videoIndex])
+        ddpclient.call(
+          'setFilename',             // name of Meteor Method being called
+          [{playerId : raspberries[raspberryNumber].id, filename: videos[videoIndex]}], // parameters to send to Meteor Method
+          function (err, result) {   // callback which returns the method call results
+            console.log('called function, result: ' + result);
+          },
+          function () {              // callback which fires when server has finished
+            console.log('updated');  // sending any updated documents as a result of
+            console.log(ddpclient.collections.posts);  // calling this method
+          }
+        );
+      }    
+      var remotestate = ddpclient.collections.players[raspberries[raspberryNumber].id].state
+      if (remotestate != newstate && newstate != "next" && newstate != "prev") {
+        console.log("transmitting new state " + newstate)
+        ddpclient.call(
+          'setState',             // name of Meteor Method being called
+          [{playerId : raspberries[raspberryNumber].id, state: newstate}], // parameters to send to Meteor Method
+          function (err, result) {   // callback which returns the method call results
+            console.log('called function, result: ' + result);
+          },
+          function () {              // callback which fires when server has finished
+            console.log('updated');  // sending any updated documents as a result of
+            console.log(ddpclient.collections.posts);  // calling this method
+          }
+        );
+      }
     }
   }
 
@@ -319,10 +323,13 @@ updatePlaylist = function() {
       videoIndex = videos.length-1
     }
   }
+  /*videoIndexMapping = videoIndexMapping.sort(function(a, b) {
+    return a - b;
+  })*/
   console.log("New mappings: ",videoIndexMapping)
   console.log("New local playlist:")
   for (var i in videoIndexMapping) {
-    console.log("• " + videos[videoIndexMapping[i]])
+    console.log("• (" + videoIndexMapping[i] + ") " + videos[videoIndexMapping[i]])
   }
 
 }
@@ -458,7 +465,6 @@ ddpclient.connect(function(error, wasReconnect) {
     console.log("[ADDED] to " + observer.name + ":  " + id);
   };
   observer.changed = function(id, oldFields, clearedFields, newFields) {
-    //return ///////////////////////////////////////////////////////////////////////// DISABLED
     console.log("[CHANGED] in " + observer.name + ":  " + id);
     console.log("[CHANGED] old field values: ", oldFields);
     console.log("[CHANGED] cleared fields: ", clearedFields);
@@ -466,12 +472,42 @@ ddpclient.connect(function(error, wasReconnect) {
     if (id == raspberries[raspberryNumber].id) {
       if (newFields.filename) {
         backupVideoIndex = videoIndex
-        if (videos.indexOf(newFields.filename) < 0) videoIndex = 0
-        else videoIndex = videos.indexOf(newFields.filename)
-        if (!newFields.state){
-          speak_system("remote preload")
-          omx.play(videos[videoIndex])
-          omx.pause()
+        /*
+        if (!newFields.state || newFields == "stop"){ // remote preload
+          if (newFields.filename != videos[videoIndex]) {
+            speak_system("remote preload")
+            var newIndex = videos.indexOf("newFields.filename")
+            if (newIndex == -1) newIndex = 0
+            videoIndex = newIndex
+            omx.play(videos[videoIndex])
+            state="play"
+            changeState("pause")
+          }
+          else {
+            if (state == "play") {
+              changeState("pause")
+              omx.sendKey("i")
+            }
+            else if (state == "pause") {
+              omx.sendKey("i")
+            }
+            else if (state == "stop") {
+              omx.play(videos[videoIndex])
+              state="play"
+              changeState("pause")
+            }
+          }
+        }
+        else {
+          if (videos.indexOf(newFields.filename) < 0) videoIndex = 0
+          else videoIndex = videos.indexOf(newFields.filename)          
+        }
+        */
+        if (newFields.filename != videos[videoIndex]) {
+
+          if (videos.indexOf(newFields.filename) < 0) videoIndex = 0
+          else videoIndex = videos.indexOf(newFields.filename)            
+          announce_video()      
         }
       }
       if (newFields.state) {
