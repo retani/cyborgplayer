@@ -16,6 +16,7 @@ raspberries = {
 }
 
 var exec = require('child_process').exec;
+var spawn = require('child_process').spawn;
 
 speak = function(text, options, callback) {
   exec('espeak ' + (options? options : "-v german") + ' "' + text + '"',function(error, stdout, stderr) {
@@ -44,6 +45,14 @@ playButtonCount = 0
 stopButtonCount = 0
 nextButtonCount = 0
 
+playButtonState = 1
+stopButtonState = 1
+nextButtonState = 1
+
+playButtonLastChanged = null
+stopButtonLastChanged = null
+nextButtonLastChanged = null
+
 state="stop" // pause,play,stop
 videos=[] // take from directory
 videoIndex=0
@@ -69,6 +78,9 @@ playButton.watch(function (err, value) {
     throw err;
   }
 
+  playButtonLastChanged = Date.now()
+  playButtonState = value
+
   if (value==0) {
     playButtonCount++
     console.log("playbutton=" + playButtonCount)
@@ -85,6 +97,9 @@ stopButton.watch(function (err, value) {
   if (err) {
     throw err;
   }
+
+  stopButtonLastChanged = Date.now()
+  stopButtonState = value  
   
   if (value==0) {
     stopButtonCount++
@@ -102,6 +117,9 @@ nextButton.watch(function (err, value) {
   if (err) {
     throw err;
   }
+
+  nextButtonLastChanged = Date.now()
+  nextButtonState = value  
   
   if (value==0) {
     nextButtonCount++
@@ -116,6 +134,20 @@ nextButton.watch(function (err, value) {
 });
 
 process.on('SIGINT', exit);
+
+triggerPoweroff = function() {
+  var interval = 5 // seconds
+  if (
+       playButtonState == 0 && playButtonLastChanged && playButtonLastChanged + interval < Date.now()
+    && nextButtonState == 0 && nextButtonLastChanged && nextButtonLastChanged + interval < Date.now()
+    ) {
+    speak_system("good bye", null, function(){
+      exec("sudo poweroff")
+    })
+  }
+}
+
+setInterval(triggerPoweroff, 1000)
 
 function changeState(newstate, notransmit) {
   var oldstate = state
@@ -332,6 +364,46 @@ updatePlaylist = function() {
     console.log("• (" + videoIndexMapping[i] + ") " + videos[videoIndexMapping[i]])
   }
 
+}
+
+downloadRemoteMedia = function() {
+  if (
+    !ddpclient 
+    || !ddpclient.collections 
+    || !ddpclient.collections.mediaavail 
+    || ddpclient.collections.mediaavail.length == 0 
+    || !ddpclient.collections.players[raspberries[raspberryNumber]].mediaserver_address 
+    || !ddpclient.collections.players[raspberries[raspberryNumber]].mediaserver_path 
+    ) {
+    console.log("download not possible")
+    return
+  }
+  else {
+    updateMediaFiles()
+    var commands = []
+    var player = ddpclient.collections.players[raspberries[raspberryNumber]]
+    for (var entry in ddpclient.collections.mediaavail) {
+      if (ddpclient.collections.mediaavail[entry].playerId == raspberries[raspberryNumber].id) {
+        if (videos.indexOf(ddpclient.collections.mediaavail[entry].mediaId) < 0) {
+          var command = commands.push("wget -P " + videosPrefix + player.mediaserver_address + "/" + player.mediaserver_path + ddpclient.collections.mediaavail[entry].mediaId)
+        }
+      }
+    }
+    var command = commands.join(" && ")
+    var terminal = spawn(command)
+
+    terminal.stdout.on('data', function (data) {
+        console.log('stdout: ' + data);
+    });
+
+    terminal.stderr.on('data', function (data) {
+        console.log('stderr: ' + data);
+    });
+
+    terminal.on('exit', function (code) {
+        console.log('child process exited with code ' + code);
+    });
+  }
 }
 
 function getFiles(srcpath) {
