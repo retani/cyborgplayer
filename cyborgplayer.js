@@ -136,10 +136,11 @@ nextButton.watch(function (err, value) {
 process.on('SIGINT', exit);
 
 triggerPoweroff = function() {
+  return ////////////////////////////////////// DISABLED
   var interval = 5 // seconds
   if (
-       playButtonState == 0 && playButtonLastChanged && playButtonLastChanged + interval < Date.now()
-    && nextButtonState == 0 && nextButtonLastChanged && nextButtonLastChanged + interval < Date.now()
+       playButtonState == 1 && playButtonLastChanged && playButtonLastChanged + interval < Date.now()
+    && nextButtonState == 1 && nextButtonLastChanged && nextButtonLastChanged + interval < Date.now()
     ) {
     speak_system("good bye", null, function(){
       exec("sudo poweroff")
