@@ -146,9 +146,9 @@ triggerPoweroff = function() {
   playPressedSecondsCounter = (playButtonState == 0 ? playPressedSecondsCounter+1 : 0)
   stopPressedSecondsCounter = (stopButtonState == 0 ? stopPressedSecondsCounter+1 : 0)
   nextPressedSecondsCounter = (nextButtonState == 0 ? nextPressedSecondsCounter+1 : 0)
-  console.log(playPressedSecondsCounter)
-  console.log(stopPressedSecondsCounter)
-  console.log(nextPressedSecondsCounter)
+  //console.log(playPressedSecondsCounter)
+  //console.log(stopPressedSecondsCounter)
+  //console.log(nextPressedSecondsCounter)
   if (stopPressedSecondsCounter >= interval) {
     unload()
     speak_system("good bye", null, function(){
