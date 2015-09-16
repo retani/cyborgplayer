@@ -149,17 +149,19 @@ triggerPoweroff = function() {
   //console.log(stopPressedSecondsCounter)
   //console.log(nextPressedSecondsCounter)
   if (stopPressedSecondsCounter >= interval) {
+    omx.quit()
     unload()
     speak_system("good bye", null, function(){
       exec("sudo poweroff")
-      process.exit()
+      //process.exit()
     })
   } 
   else if (nextPressedSecondsCounter > interval && playPressedSecondsCounter > interval) {
+    omx.quit()
     unload()
     speak_system("restart", null, function(){
       exec("sudo reboot")
-      process.exit()
+      //process.exit()
     })
   }
 }
