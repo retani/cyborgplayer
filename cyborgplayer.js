@@ -45,10 +45,6 @@ playButtonCount = 0
 stopButtonCount = 0
 nextButtonCount = 0
 
-playButtonState = 1
-stopButtonState = 1
-nextButtonState = 1
-
 playButtonLastChanged = null
 stopButtonLastChanged = null
 nextButtonLastChanged = null
@@ -63,14 +59,18 @@ var videosPrefix="/home/pi/cyborg/media/"
 //var videosPrefix="/Users/holger/Documents/Projekte/gluehland/cyborgplayer/cyborgmaster/public/media/"
 
 function exit() {
+  unload();
+  process.exit();
+}
+ 
+function unload() {
   led.unexport();
   playButton.unexport();
   stopButton.unexport();
   nextButton.unexport();
-  ddpclient.close();
-  process.exit();
+  if (ddpclient.socket) ddpclient.close();  
 }
- 
+
 console.log("OK")
 
 playButton.watch(function (err, value) {
@@ -79,7 +79,6 @@ playButton.watch(function (err, value) {
   }
 
   playButtonLastChanged = Date.now()
-  playButtonState = value
 
   if (value==0) {
     playButtonCount++
@@ -99,7 +98,7 @@ stopButton.watch(function (err, value) {
   }
 
   stopButtonLastChanged = Date.now()
-  stopButtonState = value  
+  return
   
   if (value==0) {
     stopButtonCount++
@@ -119,7 +118,6 @@ nextButton.watch(function (err, value) {
   }
 
   nextButtonLastChanged = Date.now()
-  nextButtonState = value  
   
   if (value==0) {
     nextButtonCount++
@@ -135,15 +133,34 @@ nextButton.watch(function (err, value) {
 
 process.on('SIGINT', exit);
 
+var playPressedSecondsCounter = 0
+var stopPressedSecondsCounter = 0
+var nextPressedSecondsCounter = 0
+
 triggerPoweroff = function() {
-  return ////////////////////////////////////// DISABLED
+  //return ////////////////////////////////////// DISABLED
   var interval = 5 // seconds
-  if (
-       playButtonState == 1 && playButtonLastChanged && playButtonLastChanged + interval < Date.now()
-    && nextButtonState == 1 && nextButtonLastChanged && nextButtonLastChanged + interval < Date.now()
-    ) {
+  playButtonState = playButton.readSync()
+  nextButtonState = nextButton.readSync()
+  stopButtonState = stopButton.readSync()
+  playPressedSecondsCounter = (playButtonState == 0 ? playPressedSecondsCounter+1 : 0)
+  stopPressedSecondsCounter = (stopButtonState == 0 ? stopPressedSecondsCounter+1 : 0)
+  nextPressedSecondsCounter = (nextButtonState == 0 ? nextPressedSecondsCounter+1 : 0)
+  console.log(playPressedSecondsCounter)
+  console.log(stopPressedSecondsCounter)
+  console.log(nextPressedSecondsCounter)
+  if (stopPressedSecondsCounter >= interval) {
+    unload()
     speak_system("good bye", null, function(){
       exec("sudo poweroff")
+      process.exit()
+    })
+  } 
+  else if (nextPressedSecondsCounter > interval && playPressedSecondsCounter > interval) {
+    unload()
+    speak_system("restart", null, function(){
+      exec("sudo reboot")
+      process.exit()
     })
   }
 }
