@@ -98,7 +98,6 @@ stopButton.watch(function (err, value) {
   }
 
   stopButtonLastChanged = Date.now()
-  return
   
   if (value==0) {
     stopButtonCount++
