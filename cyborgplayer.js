@@ -149,6 +149,7 @@ triggerPoweroff = function() {
   //console.log(stopPressedSecondsCounter)
   //console.log(nextPressedSecondsCounter)
   if (stopPressedSecondsCounter >= interval) {
+    clearInterval(poweroffInterval)
     omx.quit()
     unload()
     speak_system("good bye", null, function(){
@@ -157,6 +158,7 @@ triggerPoweroff = function() {
     })
   } 
   else if (nextPressedSecondsCounter > interval && playPressedSecondsCounter > interval) {
+    clearInterval(poweroffInterval)
     omx.quit()
     unload()
     speak_system("restart", null, function(){
@@ -166,7 +168,7 @@ triggerPoweroff = function() {
   }
 }
 
-setInterval(triggerPoweroff, 1000)
+poweroffInterval = setInterval(triggerPoweroff, 1000)
 
 function changeState(newstate, notransmit) {
   var oldstate = state
