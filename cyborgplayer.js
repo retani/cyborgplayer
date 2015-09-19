@@ -625,6 +625,9 @@ ddpclient.connect(function(error, wasReconnect) {
             omx.sendKey("-")
           }
         }
+        if (newFields.pingtime) {
+          observer.call('playerPingback', raspberries[raspberryNumber].id, function (error, result) {});
+        }
       }
     }
   };
