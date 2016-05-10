@@ -1,0 +1,33 @@
+#! /bin/sh
+# /etc/init.d/cyborgplayer
+
+### BEGIN INIT INFO
+# Provides:          cyborgplayer
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: cyborgplayer for gluehende landschaften theaterdiscounter 2015
+# Description:       
+### END INIT INFO
+
+case "$1" in
+  start)
+    echo "Starting cyborgplayer"
+
+    # run application you want to start
+    sudo /home/pi/cyborg/bin/run_cyborgplayer >/var/log/cyborgplayer.log 2>/var/log/cyborgplayer.log &
+    ;;
+  stop)
+    echo "Stopping cyborgplayer"
+    # kill application you want to stop
+    killall node
+    ;;
+  *)
+    echo "Usage: /etc/init.d/noip {start|stop}"
+    exit 1
+    ;;
+esac
+
+exit 0
+

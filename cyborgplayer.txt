@@ -1,0 +1,5 @@
+start: /etc/init.d/cyborgplayer start
+stop:  /etc/init.d/cyborgplayer stop
+log:   /var/log/cyborgplayer.log
+
+

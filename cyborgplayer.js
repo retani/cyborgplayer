@@ -1,4 +1,4 @@
-master_network_address = "192.168.0.100"
+master_network_address = "192.168.0.2"
 
 raspberries = {
   1: {
