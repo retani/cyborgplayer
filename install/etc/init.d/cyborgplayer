@@ -16,7 +16,7 @@ case "$1" in
     echo "Starting cyborgplayer"
 
     # run application you want to start
-    sudo /home/pi/cyborg/bin/run_cyborgplayer >/var/log/cyborgplayer.log 2>/var/log/cyborgplayer.log &
+    sudo /home/pi/cyborg/bin/run_cyborgplayer > /var/log/cyborgplayer.log 2>&1 &
     ;;
   stop)
     echo "Stopping cyborgplayer"

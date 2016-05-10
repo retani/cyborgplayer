@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# add ssh key:
+# cat ~/.ssh/id_rsa.pub | ssh pi@pi1 'cat >> .ssh/authorized_keys'
+
 ssh pi@pi1 sudo /etc/init.d/cyborgplayer stop
-rsync -rv ./ pi@pi1:~/cyborg/
+rsync -rz ./ pi@pi1:~/cyborg/
 ssh pi@pi1 sudo /etc/init.d/cyborgplayer start

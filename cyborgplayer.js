@@ -552,17 +552,29 @@ ddpclient.connect(function(error, wasReconnect) {
     }
   );  
 
+  videos.forEach(function (filename) { 
+    console.log("set media status for " + filename) 
+    ddpclient.call('setPlayerMediaStatus', [{ 
+      playerId : raspberries[raspberryNumber].id, 
+      filename: filename, 
+      attr: 'available',
+      value: true
+    }], function(error, result){})
+  })
+
 
   var observer = ddpclient.observe("players");
   observer.added = function(id) {
     console.log("[ADDED] to " + observer.name + ":  " + id);
   };
   observer.changed = function(id, oldFields, clearedFields, newFields) {
-    console.log("[CHANGED] in " + observer.name + ":  " + id);
-    console.log("[CHANGED] old field values: ", oldFields);
-    console.log("[CHANGED] cleared fields: ", clearedFields);
-    console.log("[CHANGED] new fields: ", newFields);
     if (id == raspberries[raspberryNumber].id) {
+      /*
+      console.log("[CHANGED] in " + observer.name + ":  " + id);
+      console.log("[CHANGED] old field values: ", oldFields);
+      console.log("[CHANGED] cleared fields: ", clearedFields);
+      console.log("[CHANGED] new fields: ", newFields);   
+      */   
       if (newFields.filename) {
         backupVideoIndex = videoIndex
         /*
@@ -625,10 +637,10 @@ ddpclient.connect(function(error, wasReconnect) {
             omx.sendKey("-")
           }
         }
-        if (newFields.pingtime) {
-          observer.call('playerPingback', raspberries[raspberryNumber].id, function (error, result) {});
-        }
       }
+      if (newFields.pingtime) {
+        ddpclient.call('playerPingback', [raspberries[raspberryNumber].id], function (error, result) {});
+      }      
     }
   };
   observer.removed = function(id, oldValue) {
