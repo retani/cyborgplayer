@@ -1,0 +1,5 @@
+#!/bin/bash
+
+ssh pi@pi1 sudo /etc/init.d/cyborgplayer stop
+rsync -rv ./ pi@pi1:~/cyborg/
+ssh pi@pi1 sudo /etc/init.d/cyborgplayer start
