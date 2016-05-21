@@ -499,8 +499,8 @@ downloadRemoteMedia = function() {
               ddpclient.call('setPlayerMediaStatus', [{ 
                 playerId : raspberries[raspberryNumber].id, 
                 mediaId: mId, 
-                attr: 'progress',
-                value: progress
+                attr: ['progress','downloading'],
+                value: [progress, true]
               }], function(error, result){})   
               lastProgress[mId] = progress
             }
