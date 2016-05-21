@@ -1,0 +1,65 @@
+#!/bin/bash
+
+# add ssh key:
+# cat ~/.ssh/id_rsa.pub | ssh pi@pi1 'cat >> .ssh/authorized_keys'
+
+
+#!/bin/sh
+
+if [[ $1 = '' ]]
+then
+  echo "usage: update-remote-pi [-i] IP_ADDRESS"
+  echo "-i is interactive mode, directs output to this shell"
+  exit
+fi
+
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
+interactive=0
+usage=0
+
+while getopts "h?i" opt; do
+    case "$opt" in
+    h|\?)
+        usage=1
+        ;;
+    i)  interactive=1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+pi_addr=$@
+
+# got variables
+
+if [[ `git rev-parse --show-toplevel | xargs basename` != 'cyborgplayer' ]] || [[ `git rev-parse --show-cdup` != '' ]]
+then
+  echo "Must be in cyborgplayer base directory"
+  exit
+else
+  if [ $interactive = 1 ]
+  then
+    echo "Updating $pi_addr interactively"
+  else
+    echo "Updating $pi_addr"
+  fi
+fi
+
+# let's go
+
+ssh pi@$pi_addr sudo /etc/init.d/cyborgplayer stop
+
+rsync -rcz --exclude=media --stats ./ pi@$pi_addr:~/cyborg/
+
+if [ $interactive = 1 ]
+then
+  ssh pi@$pi_addr 'sudo ~/cyborg/bin/run_cyborgplayer'
+else
+  ssh pi@$pi_addr 'sudo /etc/init.d/cyborgplayer start'
+fi

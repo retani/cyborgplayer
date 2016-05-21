@@ -17,6 +17,7 @@ raspberries = {
 
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
+var wget = require('wget-improved');
 
 speak = function(text, options, callback) {
   exec('espeak ' + (options? options : "-v german") + ' "' + text + '"',function(error, stdout, stderr) {
@@ -388,28 +389,119 @@ updatePlaylist = function() {
 }
 
 downloadRemoteMedia = function() {
-  if (
-    !ddpclient 
-    || !ddpclient.collections 
-    || !ddpclient.collections.mediaavail 
-    || ddpclient.collections.mediaavail.length == 0 
-    || !ddpclient.collections.players[raspberries[raspberryNumber]].mediaserver_address 
-    || !ddpclient.collections.players[raspberries[raspberryNumber]].mediaserver_path 
-    ) {
-    console.log("download not possible")
-    return
-  }
-  else {
-    updateMediaFiles()
-    var commands = []
-    var player = ddpclient.collections.players[raspberries[raspberryNumber]]
-    for (var entry in ddpclient.collections.mediaavail) {
-      if (ddpclient.collections.mediaavail[entry].playerId == raspberries[raspberryNumber].id) {
-        if (videos.indexOf(ddpclient.collections.mediaavail[entry].mediaId) < 0) {
-          var command = commands.push("wget -P " + videosPrefix + player.mediaserver_address + "/" + player.mediaserver_path + ddpclient.collections.mediaavail[entry].mediaId)
-        }
+
+  if (!ddpclient)
+    { console.log ("download not possible - no ddp"); return }
+
+  if (!ddpclient.collections )
+    { console.log ("download not possible - no ddp collections"); return }   
+
+  if (!ddpclient.collections.players )
+    { console.log ("download not possible - no ddp players"); return }    
+
+
+  if (!raspberries)
+    { console.log ("download not possible - no raspberries array"); return }    
+
+  if (!raspberryNumber)
+    { console.log ("download not possible - no raspberry number"); return }    
+
+  if (!raspberries[raspberryNumber])
+    { console.log ("download not possible - raspberry not in array"); return }    
+
+  if (!ddpclient.collections.players[raspberries[raspberryNumber].id])
+    { console.log ("download not possible - no ddp player"); return }    
+
+  if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaStatus )
+    { console.log ("download not possible - no ddp mediaStatus"); return }    
+
+  if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaserver_address)
+    { console.log ("download not possible - no mediaserver address"); return }    
+
+  if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaserver_path )
+    { console.log ("download not possible - no mediaserver path"); return }    
+
+  updateMediaFiles()
+  var commands = []
+  var player = ddpclient.collections.players[raspberries[raspberryNumber].id]
+  for (var mediaId in player.mediaStatus) {
+    var media = player.mediaStatus[mediaId]
+    if (media.required && !media.available) {
+
+      // downloading
+      var options = {
+          protocol: 'http',
+          host: player.mediaserver_address,
+          path: '/' + player.mediaserver_path + key2filename(mediaId),
+          method: 'GET'
+      };
+
+      var src = options.protocol + "://" + options.host + options.path
+      var output = videosPrefix + key2filename(mediaId)
+
+      console.log("downloading " + src + " to " + output)
+
+      var download = wget.download(src, output, options);
+      download.on('error', function(err) {
+          console.log(err);
+      });
+      download.on('start', function(fileSize) {
+          console.log("Starting download of " + mediaId + " filesize: " + fileSize);
+      });
+      download.on('end', function(output) {
+        console.log("downloaded " + mediaId)
+        ddpclient.call('setPlayerMediaStatus', [{ 
+          playerId : raspberries[raspberryNumber].id, 
+          mediaId: mediaId, 
+          attr: 'available',
+          value: true
+        }], function(error, result){})                
+        console.log(output);
+      });
+      download.on('progress', function(progress) {
+          console.log("downloading " + mediaId, progress)
+          if (typeof(media.progress) != "number" || Math.abs(media.progress - progress) > 0.01) {
+            ddpclient.call('setPlayerMediaStatus', [{ 
+              playerId : raspberries[raspberryNumber].id, 
+              mediaId: mediaId, 
+              attr: 'progress',
+              value: progress
+            }], function(error, result){})   
+          }
+      });      
+
+    }
+
+    /*
+    if (ddpclient.collections.mediaavail[entry].playerId == raspberries[raspberryNumber].id) {
+      if (videos.indexOf(ddpclient.collections.mediaavail[entry].mediaId) < 0) {
+        var command = commands.push("wget -P " + videosPrefix + player.mediaserver_address + "/" + player.mediaserver_path + ddpclient.collections.mediaavail[entry].mediaId)
       }
     }
+    */
+
+    else if (media.available && !media.required) {
+      var filename = videosPrefix + key2filename(mediaId)
+      var command = "rm " + filename
+      console.log(command)
+
+      /*
+        var terminal = spawn(command)
+
+        terminal.stdout.on('data', function (data) {
+            console.log('stdout: ' + data);
+        });
+
+        terminal.stderr.on('data', function (data) {
+            console.log('stderr: ' + data);
+        });      
+        terminal.on('exit', function (code) {
+            console.log(command + ' exited with code ' + code);
+        });      
+      */
+    }
+
+    /*
     var command = commands.join(" && ")
     var terminal = spawn(command)
 
@@ -424,6 +516,7 @@ downloadRemoteMedia = function() {
     terminal.on('exit', function (code) {
         console.log('child process exited with code ' + code);
     });
+    */
   }
 }
 
@@ -556,7 +649,7 @@ ddpclient.connect(function(error, wasReconnect) {
     console.log("set media status for " + filename) 
     ddpclient.call('setPlayerMediaStatus', [{ 
       playerId : raspberries[raspberryNumber].id, 
-      filename: filename, 
+      mediaId: filename, 
       attr: 'available',
       value: true
     }], function(error, result){})
@@ -641,6 +734,9 @@ ddpclient.connect(function(error, wasReconnect) {
       if (newFields.pingtime) {
         ddpclient.call('playerPingback', [raspberries[raspberryNumber].id], function (error, result) {});
       }      
+      if (newFields.mediaStatus) {
+        downloadRemoteMedia()
+      }
     }
   };
   observer.removed = function(id, oldValue) {
@@ -678,4 +774,13 @@ function getMappingIndex() {
 function announce_video() {
   //speak(videos[videoIndex].split(".")[0].split(" ")[0])
   speak(videos[videoIndex].substr(0,videos[videoIndex].length-4))
+}
+
+
+filename2key = function(filename) {
+  return filename.replace(/\./g, "*")
+}
+
+key2filename = function(key) {
+  return key.replace(/\*/g, ".")
 }
