@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# add ssh key:
+# cat ~/.ssh/id_rsa.pub | ssh pi@pi1 'cat >> .ssh/authorized_keys'
+
+
+#!/bin/sh
+
+if [[ $1 = '' ]]
+then
+  echo "usage: update-remote-media IP_ADDRESS"
+  exit
+fi
+
+# A POSIX variable
+OPTIND=1         # Reset in case getopts has been used previously in the shell.
+
+# Initialize our own variables:
+interactive=0
+usage=0
+
+while getopts "h?" opt; do
+    case "$opt" in
+    h|\?)
+        usage=1
+        ;;
+    esac
+done
+
+shift $((OPTIND-1))
+
+[ "$1" = "--" ] && shift
+
+pi_addr=$@
+
+# got variables
+
+if [[ `git rev-parse --show-toplevel | xargs basename` != 'cyborgplayer' ]] || [[ `git rev-parse --show-cdup` != '' ]]
+then
+  echo "Must be in cyborgplayer base directory"
+  exit
+else
+  echo "Updating $pi_addr media"
+fi
+
+# let's go
+
+ssh pi@$pi_addr 'sudo /etc/init.d/cyborgplayer stop'
+
+rsync -zvhr --size-only --progress --delete --delete-during --stats /Library/WebServer/Documents/media/ pi@$pi_addr:~/cyborg/media/
+
+ssh pi@$pi_addr 'sudo /etc/init.d/cyborgplayer start'
+
