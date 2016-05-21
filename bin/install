@@ -1,0 +1,2 @@
+sudo ln install/etc/init.d/cyborgplayer /etc/init.d/cyborgplayer
+sudo update-rc.d cyborgplayer defaults
