@@ -8,9 +8,16 @@
 
 INFO
 
-    #amixer cset numid=3 1
-    espeak "up"
-    python /home/pi/cyborg/setup.py
-    node /home/pi/cyborg/cyborgplayer.js
+# Print the IP address
+_IP=$(hostname -I) || true
+if [ "$_IP" ]; then
+  printf "IP address %s\n" "$_IP"
+fi
+
+
+#amixer cset numid=3 1
+espeak "up"
+python /home/pi/cyborg/setup.py
+node /home/pi/cyborg/cyborgplayer.js
 
 
