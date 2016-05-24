@@ -516,7 +516,7 @@ downloadRemoteMedia = function() {
       }
       */
 
-      else if ( (videos.indexOf(key2filename(mediaId)) > -1) && typeof(media.required)!="undefined" && !media.required) {
+      else if ( (videos.indexOf(key2filename(mediaId)) > -1) && typeof(media.required)!="undefined" && media.required === false ) {
 
         var file = videosPrefix + key2filename(mId)
 
@@ -524,21 +524,21 @@ downloadRemoteMedia = function() {
           console.log("cannot abort download of " + file)
           //download.end()
         }
-
-        var command = "rm " + file
-        console.log(command)
-        
-        fs.unlink(file, function(){
-          console.log("removed " + file + " (" + mId + ")")
-          updateMediaFiles()
-          ddpclient.call('setPlayerMediaStatus', [{ 
-            playerId : raspberries[raspberryNumber].id, 
-            mediaId: mId, 
-            attr: ['progress', 'available'],
-            value: [false, false]
-          }], function(error, result){})             
-        })
-        
+        else {
+          var command = "rm " + file
+          console.log(command)
+          
+          fs.unlink(file, function(){
+            console.log("removed " + file + " (" + mId + ")")
+            ddpclient.call('setPlayerMediaStatus', [{ 
+              playerId : raspberries[raspberryNumber].id, 
+              mediaId: mId, 
+              attr: ['progress', 'available'],
+              value: [false, false]
+            }], function(error, result){})             
+            updateMediaFiles()
+          })
+        }
       } 
     })()
   }
@@ -546,7 +546,13 @@ downloadRemoteMedia = function() {
 
 function getFiles(srcpath) {
   return fs.readdirSync(srcpath).filter(function(file) {
-    return fs.statSync(path.join(srcpath, file)).isFile();
+    try {
+      return fs.statSync(path.join(srcpath, file)).isFile();
+    }
+    catch(error) {
+      console.log("Error in stat with " +  file + " - " + error.code)
+      return false
+    }
   });
 }
 
@@ -689,12 +695,12 @@ ddpclient.connect(function(error, wasReconnect) {
   // If autoReconnect is true, this callback will be invoked each time
   // a server connection is re-established
   if (error) {
-    console.log('DDP connection error!');
+    console.log('DDP: connection error!');
     return;
   }
 
   if (wasReconnect) {
-    console.log('Reestablishment of a connection.');
+    console.log('DDP: Reestablishment of a connection.');
   }
 
   ddpclient.subscribe(
