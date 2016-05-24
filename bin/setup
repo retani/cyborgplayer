@@ -1,0 +1,29 @@
+sudo apt-get update
+sudo apt-get upgrade
+
+sudo apt-get install git rsync network-manager
+
+echo ">>>>> Now set up the time zone [RETURN to continue]"
+read
+sudo raspi-config
+
+echo ">>>>> Now set up the hostname under advanced to cyborgplayer# where # is 1 or 2 or 3 ... [RETURN to continue]"
+read
+sudo raspi-config
+
+sudo apt-get install device-tree-compiler
+sudo dtc -@ -I dts -O dtb -o /boot/overlays/mygpio-overlay.dtb src/mygpio-overlay.dts
+
+echo "Setting up network manager"
+
+sudo cp /etc/network/interfaces /etc/network/interfaces.orig-`date +%s`
+sudo echo "# NetworkManager manages the networks now" > /etc/network/interfaces
+sudo echo "auto lo" >> /etc/network/interfaces
+sudo echo "iface lo inet loopback" >> /etc/network/interfaces
+
+sudo nmcli con add con-name wlan-cyborgplayer ifname wlan0 type wifi ssid INTERNIL
+sudo nmcli con modify wlan-cyborgplayer wifi-sec.key-mgmt wpa-psk
+sudo nmcli con modify wlan-cyborgplayer wifi-sec.psk Glueh_2015
+nmcli radio wifi
+
+sudo raspi-config --expand-rootfs
