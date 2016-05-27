@@ -1,0 +1,11 @@
+[Service]
+ExecStart=/usr/local/bin/node /home/pi/cyborg/cyborgplayer.js
+Restart=always
+StandardOutput=/var/log/cyborgplayer.log
+StandardError=/var/log/cyborgplayer.log
+SyslogIdentifier=cyborgplayer
+#User=pi
+#Group=your_app_user_name
+
+[Install]
+WantedBy=multi-user.target

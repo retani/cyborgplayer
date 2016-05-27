@@ -1,7 +1,19 @@
+# how to start:
+# apt-get install git
+# git clone https://github.com/retani/cyborgplayer.git
+# cd cyborgplayer
+# sudo bin/setup
+
 sudo apt-get update
 sudo apt-get upgrade
 
-sudo apt-get install git rsync network-manager
+sudo apt-get install git rsync network-manager espeak
+
+echo "Setting up node"
+
+wget https://nodejs.org/dist/v4.0.0/node-v4.0.0-linux-armv7l.tar.gz 
+tar -xvf node-v4.0.0-linux-armv7l.tar.gz 
+sudo cp -R node-v4.0.0-linux-armv7l/* /usr/local/
 
 echo ">>>>> Now set up the time zone [RETURN to continue]"
 read
@@ -13,6 +25,9 @@ sudo raspi-config
 
 sudo apt-get install device-tree-compiler
 sudo dtc -@ -I dts -O dtb -o /boot/overlays/mygpio-overlay.dtb src/mygpio-overlay.dts
+
+echo 'espeak "up"' >> /etc/rc.local
+echo "/home/pi/cyborg/setup.py" >> /etc/rc.local
 
 echo "Setting up network manager"
 
@@ -26,4 +41,14 @@ sudo nmcli con modify wlan-cyborgplayer wifi-sec.key-mgmt wpa-psk
 sudo nmcli con modify wlan-cyborgplayer wifi-sec.psk Glueh_2015
 nmcli radio wifi
 
+echo "Setting up service"
+
+cp /etc/systemd/system/cyborgplayer.service /etc/systemd/system/
+systemctl start cyborgplayer.service
+systemctl enable cyborgplayer.service
+sleep 3
+systemctl status cyborgplayer.service
+
 sudo raspi-config --expand-rootfs
+
+echo ">>>> Now change password with passwd and reboot"

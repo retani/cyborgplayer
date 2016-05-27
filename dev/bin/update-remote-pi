@@ -57,9 +57,9 @@ ssh pi@$pi_addr sudo /etc/init.d/cyborgplayer stop
 
 rsync -rcz --exclude=media --stats ./ pi@$pi_addr:~/cyborg/
 
+ssh pi@$pi_addr 'sudo /etc/init.d/cyborgplayer start'
+
 if [ $interactive = 1 ]
 then
-  ssh pi@$pi_addr 'sudo ~/cyborg/bin/run_cyborgplayer'
-else
-  ssh pi@$pi_addr 'sudo /etc/init.d/cyborgplayer start'
+  ssh pi@pi1 tail -f /var/log/cyborgplayer.log
 fi

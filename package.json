@@ -7,6 +7,7 @@
     "ddp": "^0.11.0",
     "omxcontrol": "https://github.com/retani/omxcontrol/tarball/84119446b2b2da1f5c66a4df3692f6293600d85c",
     "onoff": "^1.0.2",
+    "tracer": "^0.8.3",
     "wget-improved": "^1.3.0"
   },
   "devDependencies": {},

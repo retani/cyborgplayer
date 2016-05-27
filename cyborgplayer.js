@@ -1,28 +1,29 @@
-master_network_address = "192.168.0.2"
+master_network_address = "cyborgmaster.local"
 
 raspberries = {
   1: {
     id:"r1",
-    ip: "192.168.0.10"
+    ip: "cyborgplayer1"
   },
   2: {
     id:"r2",
-    ip: "192.168.0.11"
+    ip: "cyborgplayer2"
   },
   3:{
     id:"r3",
-    ip: "192.168.0.12"
+    ip: "cyborgplayer3"
   },
 }
 
 var exec = require('child_process').exec;
 var spawn = require('child_process').spawn;
 var wget = require('wget-improved');
+var logger = require('tracer').console();
 
 speak = function(text, options, callback) {
   exec('espeak ' + (options? options : "-v german") + ' "' + text + '"',function(error, stdout, stderr) {
-      //console.log(stdout);
-      console.log("said " + text)
+      //logger.log(stdout);
+      logger.log("said " + text)
       if (callback) callback(error, stdout, stderr)
   });  
 }
@@ -75,7 +76,7 @@ function unload() {
   if (ddpclient.socket) ddpclient.close();  
 }
 
-console.log("OK")
+logger.log("OK")
 
 playButton.watch(function (err, value) {
   if (err) {
@@ -86,7 +87,7 @@ playButton.watch(function (err, value) {
 
   if (value==0) {
     playButtonCount++
-    console.log("playbutton=" + playButtonCount)
+    logger.log("playbutton=" + playButtonCount)
     switch(state) {
       case "play":  changeState("pause"); break
       case "pause": changeState("play");  break
@@ -105,7 +106,7 @@ stopButton.watch(function (err, value) {
   
   if (value==0) {
     stopButtonCount++
-    console.log("stopbutton=" + stopButtonCount)
+    logger.log("stopbutton=" + stopButtonCount)
     switch(state) {
       case "play":  changeState("stop"); break
       case "pause": changeState("stop");  break
@@ -124,10 +125,10 @@ nextButton.watch(function (err, value) {
   
   if (value==0) {
     nextButtonCount++
-    console.log("nextbutton=" + nextButtonCount)
+    logger.log("nextbutton=" + nextButtonCount)
     switch(state) {
-      case "play":  changeState("next"); break
-      case "pause": changeState("next");  break
+      case "play":  changeState("stop"); break
+      case "pause": changeState("stop");  break
       case "stop":  changeState("next");  break
     }
   }    
@@ -149,9 +150,9 @@ triggerPoweroff = function() {
   playPressedSecondsCounter = (playButtonState == 0 ? playPressedSecondsCounter+1 : 0)
   stopPressedSecondsCounter = (stopButtonState == 0 ? stopPressedSecondsCounter+1 : 0)
   nextPressedSecondsCounter = (nextButtonState == 0 ? nextPressedSecondsCounter+1 : 0)
-  //console.log(playPressedSecondsCounter)
-  //console.log(stopPressedSecondsCounter)
-  //console.log(nextPressedSecondsCounter)
+  //logger.log(playPressedSecondsCounter)
+  //logger.log(stopPressedSecondsCounter)
+  //logger.log(nextPressedSecondsCounter)
   if (stopPressedSecondsCounter >= interval) {
     clearInterval(poweroffInterval)
     omx.quit()
@@ -179,7 +180,7 @@ function changeState(newstate, notransmit) {
 
   if (oldstate == newstate) return
 
-  console.log(oldstate + " -> " + newstate)
+  logger.log(oldstate + " -> " + newstate)
 
 
   LEDaction(newstate)
@@ -202,7 +203,7 @@ function changeState(newstate, notransmit) {
         speak_system("end")
       }
     })
-    console.log("playing " + videosPrefix + videos[videoIndex])
+    logger.log("playing " + videosPrefix + videos[videoIndex])
   }
 
   if (oldstate == "play" && newstate == "stop") {
@@ -224,8 +225,8 @@ function changeState(newstate, notransmit) {
     else {
       videoIndex=0  
     }
-    console.log("next - new index ", getMappingIndex(), videoIndex)
-    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    logger.log("next - new index ", getMappingIndex(), videoIndex)
+    logger.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
     newstate = "stop"
     //return
@@ -241,7 +242,7 @@ function changeState(newstate, notransmit) {
     else {
       videoIndex=0  
     }
-    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    logger.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
     newstate = "stop"
     //return
@@ -257,7 +258,7 @@ function changeState(newstate, notransmit) {
       videoIndex=videoIndexMapping[videoIndexMapping.length-1]
     }
     if (videoIndex > videos.length-1) videoIndex = videos.length-1
-    console.log("vid " + videoIndex + ": " + videos[videoIndex])
+    logger.log("vid " + videoIndex + ": " + videos[videoIndex])
     announce_video()
     newstate = "stop"
     //return
@@ -274,33 +275,33 @@ function changeState(newstate, notransmit) {
   if (!notransmit) {
     if (ddpclient && ddpclient.collections && ddpclient.collections.players) {
       var remotevideo = ddpclient.collections.players[raspberries[raspberryNumber].id].filename
-      console.log("remotevideo",remotevideo)
+      logger.log("remotevideo",remotevideo)
       if (videos[videoIndex] != remotevideo) {
-        console.log("transmitting new media " + videos[videoIndex])
+        logger.log("transmitting new media " + videos[videoIndex])
         ddpclient.call(
           'setFilename',             // name of Meteor Method being called
           [{playerId : raspberries[raspberryNumber].id, filename: videos[videoIndex]}], // parameters to send to Meteor Method
           function (err, result) {   // callback which returns the method call results
-            console.log('called function, result: ' + result);
+            logger.log('called function, result: ' + result);
           },
           function () {              // callback which fires when server has finished
-            console.log('updated');  // sending any updated documents as a result of
-            console.log(ddpclient.collections.posts);  // calling this method
+            logger.log('updated');  // sending any updated documents as a result of
+            logger.log(ddpclient.collections.posts);  // calling this method
           }
         );
       }    
       var remotestate = ddpclient.collections.players[raspberries[raspberryNumber].id].state
       if (remotestate != newstate && newstate != "next" && newstate != "prev") {
-        console.log("transmitting new state " + newstate)
+        logger.log("transmitting new state " + newstate)
         ddpclient.call(
           'setState',             // name of Meteor Method being called
           [{playerId : raspberries[raspberryNumber].id, state: newstate}], // parameters to send to Meteor Method
           function (err, result) {   // callback which returns the method call results
-            console.log('called function, result: ' + result);
+            logger.log('called function, result: ' + result);
           },
           function () {              // callback which fires when server has finished
-            console.log('updated');  // sending any updated documents as a result of
-            console.log(ddpclient.collections.posts);  // calling this method
+            logger.log('updated');  // sending any updated documents as a result of
+            logger.log(ddpclient.collections.posts);  // calling this method
           }
         );
       }
@@ -316,7 +317,7 @@ function LEDaction(newstate) {
   }
 
   if (newstate == "play") {
-    console.log(typeof blinker)
+    logger.log(typeof blinker)
     if (typeof blinker !== "undefined") clearInterval(blinker)
     led.writeSync(0);
   }
@@ -383,10 +384,10 @@ updatePlaylist = function() {
   /*videoIndexMapping = videoIndexMapping.sort(function(a, b) {
     return a - b;
   })*/
-  console.log("New mappings: ",videoIndexMapping)
-  console.log("New local playlist:")
+  logger.log("New mappings: ",videoIndexMapping)
+  logger.log("New local playlist:")
   for (var i in videoIndexMapping) {
-    console.log("• (" + videoIndexMapping[i] + ") " + videos[videoIndexMapping[i]])
+    logger.log("• (" + videoIndexMapping[i] + ") " + videos[videoIndexMapping[i]])
   }
 
 }
@@ -394,35 +395,35 @@ updatePlaylist = function() {
 downloadRemoteMedia = function() {
 
   if (!ddpclient)
-    { console.log ("download not possible - no ddp"); return }
+    { logger.log ("download not possible - no ddp"); return }
 
   if (!ddpclient.collections )
-    { console.log ("download not possible - no ddp collections"); return }   
+    { logger.log ("download not possible - no ddp collections"); return }   
 
   if (!ddpclient.collections.players )
-    { console.log ("download not possible - no ddp players"); return }    
+    { logger.log ("download not possible - no ddp players"); return }    
 
 
   if (!raspberries)
-    { console.log ("download not possible - no raspberries array"); return }    
+    { logger.log ("download not possible - no raspberries array"); return }    
 
   if (!raspberryNumber)
-    { console.log ("download not possible - no raspberry number"); return }    
+    { logger.log ("download not possible - no raspberry number"); return }    
 
   if (!raspberries[raspberryNumber])
-    { console.log ("download not possible - raspberry not in array"); return }    
+    { logger.log ("download not possible - raspberry not in array"); return }    
 
   if (!ddpclient.collections.players[raspberries[raspberryNumber].id])
-    { console.log ("download not possible - no ddp player"); return }    
+    { logger.log ("download not possible - no ddp player"); return }    
 
   if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaStatus )
-    { console.log ("download not possible - no ddp mediaStatus"); return }    
+    { logger.log ("download not possible - no ddp mediaStatus"); return }    
 
   if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaserver_address)
-    { console.log ("download not possible - no mediaserver address"); return }    
+    { logger.log ("download not possible - no mediaserver address"); return }    
 
   if (!ddpclient.collections.players[raspberries[raspberryNumber].id].mediaserver_path )
-    { console.log ("download not possible - no mediaserver path"); return }    
+    { logger.log ("download not possible - no mediaserver path"); return }    
 
   updateMediaFiles()
   var commands = []
@@ -434,7 +435,7 @@ downloadRemoteMedia = function() {
 
       var media = player.mediaStatus[mediaId]
       var mId = mediaId
-      console.log(media)
+      //logger.log(media)
 
       if (media.required && (videos.indexOf(key2filename(mediaId)) < 0) && ( typeof(downloading) == "undefined" || !downloading ) ) {
 
@@ -452,12 +453,12 @@ downloadRemoteMedia = function() {
         var src = download_options.protocol + "://" + download_options.host + download_options.path
         var output = download_options.output
 
-        console.log("downloading " + src + " to " + output)
+        logger.log("downloading " + src + " to " + output)
 
         download = wget.download(src, output, download_options);
 
         download.on('error', function(err) {
-            console.log(err);
+            logger.log(err);
             downloading = false
             lastProgress[mId] = 0
             ddpclient.call('setPlayerMediaStatus', [{ 
@@ -468,7 +469,7 @@ downloadRemoteMedia = function() {
             }], function(error, result){})              
         });
         download.on('start', function(fileSize) {
-            console.log("Starting download of " + mId + " filesize: " + fileSize);
+            logger.log("Starting download of " + mId + " filesize: " + fileSize);
             downloading = true
             lastProgress[mId] = -1
             ddpclient.call('setPlayerMediaStatus', [{ 
@@ -479,22 +480,22 @@ downloadRemoteMedia = function() {
             }], function(error, result){})                   
         });
         download.on('end', function(output) {
-          console.log("downloaded " + mId)
+          logger.log("downloaded " + mId)
           ddpclient.call('setPlayerMediaStatus', [{ 
             playerId : raspberries[raspberryNumber].id, 
             mediaId: mId, 
             attr: ['available', 'progress', 'downloading'],
             value: [true, 1, false],
           }], function(error, result){})          
-          console.log(output);
+          logger.log(output);
           downloading = false
           lastProgress[mId] = 1
           downloadRemoteMedia()
         });
         download.on('progress', function(progress) {
             if (typeof(lastProgress[mId]) == "undefined" || typeof(lastProgress[mId]) == "null") lastProgress[mId] = media.progress
-            //console.log("downloading " + mediaId, progress)
-            //console.log(media.progress, lastProgress[mediaId] - progress, Math.abs(lastProgress[mediaId] - progress), Math.abs(lastProgress[mediaId] - progress)>0.01)
+            //logger.log("downloading " + mediaId, progress)
+            //logger.log(media.progress, lastProgress[mediaId] - progress, Math.abs(lastProgress[mediaId] - progress), Math.abs(lastProgress[mediaId] - progress)>0.01)
             if ( lastProgress[mId] && Math.abs(lastProgress[mId] - progress) > 0.01 ) {
               ddpclient.call('setPlayerMediaStatus', [{ 
                 playerId : raspberries[raspberryNumber].id, 
@@ -521,15 +522,15 @@ downloadRemoteMedia = function() {
         var file = videosPrefix + key2filename(mId)
 
         if ( typeof(download) != "undefined" && downloading && download_options.output == file) {
-          console.log("cannot abort download of " + file)
+          logger.log("cannot abort download of " + file)
           //download.end()
         }
         else {
           var command = "rm " + file
-          console.log(command)
+          logger.log(command)
           
           fs.unlink(file, function(){
-            console.log("removed " + file + " (" + mId + ")")
+            logger.log("removed " + file + " (" + mId + ")")
             ddpclient.call('setPlayerMediaStatus', [{ 
               playerId : raspberries[raspberryNumber].id, 
               mediaId: mId, 
@@ -550,7 +551,7 @@ function getFiles(srcpath) {
       return fs.statSync(path.join(srcpath, file)).isFile();
     }
     catch(error) {
-      console.log("Error in stat with " +  file + " - " + error.code)
+      logger.log("Error in stat with " +  file + " - " + error.code)
       return false
     }
   });
@@ -574,9 +575,9 @@ function updateMediaFiles() {
   ) {
      // nothing changed
   } else {
-     console.log("updated media files");
+     logger.log("updated media files");
      videos = newvideos
-     videos.forEach(function (filename) { console.log("• " + filename) })
+     videos.forEach(function (filename) { logger.log("• " + filename) })
      if (videoIndex > videos.length-1) {
       videoIndex = videos.length-1
      }
@@ -589,26 +590,38 @@ updateMediaFiles()
 function updateMediaStatus() {
 
   var mediaStatus = ddpclient.collections.players[raspberries[raspberryNumber].id].mediaStatus
+  var media = ddpclient.collections.media
 
+  // go through local videos
   videos.forEach(function (filename) { 
-    console.log("set media status for " + filename)
+    logger.log("set media status for " + filename)
 
     var this_available = true
 
     var filesize = fs.statSync( videosPrefix + filename )['size']
 
-    if (mediaStatus[filename2key(filename)] && mediaStatus[filename2key(filename)].expected_filesize) {
+    if (mediaStatus && mediaStatus[filename2key(filename)] && mediaStatus[filename2key(filename)].expected_filesize) {
       var expected_filesize = mediaStatus[filename2key(filename)].expected_filesize
-      console.log("filesize for " + filename + " is " + filesize + ", expected was " + expected_filesize)
+      logger.log("filesize for " + filename + " is " + filesize + ", expected was " + expected_filesize)
       if (filesize != expected_filesize) {
-        console.log( filename + " has wrong file size")
+        logger.log( filename + " has wrong file size")
         fs.unlink(videosPrefix + filename, function(){
-          console.log("removed " + filename )
+          logger.log("removed " + filename )
           updateMediaFiles()
         })        
         this_available = false
       }
     }
+
+/*
+    if (mediaStatus && mediaStatus[filename2key(filename)] && !mediaStatus[filename2key(filename)].required) {
+      logger.log(filename + " is available but not required expected was ")
+      fs.unlink(videosPrefix + filename, function(){
+        logger.log("removed " + filename )
+        updateMediaFiles()
+      })        
+      this_available = false
+    }    */
 
     ddpclient.call('setPlayerMediaStatus', [{ 
       playerId : raspberries[raspberryNumber].id, 
@@ -618,10 +631,11 @@ function updateMediaStatus() {
     }], function(error, result){})
   })
 
+  // go through videos in mediaStatus
   for (var m in mediaStatus) {
     var filename = key2filename(m)
     if (videos.indexOf(filename) < 0) {
-      console.log("set media status (not available) for " + filename) 
+      logger.log("set media status (not available) for " + filename) 
       ddpclient.call('setPlayerMediaStatus', [{ 
         playerId : raspberries[raspberryNumber].id, 
         mediaId: filename2key(filename), 
@@ -638,8 +652,29 @@ function updateMediaStatus() {
         value: false
       }], function(error, result){})      
     }
-
   }  
+
+  
+  // go through media collection
+  if (media && mediaStatus) {
+    for (var m in media){
+      logger.log("checking " + m)
+      if (mediaStatus[filename2key(m)] && mediaStatus[filename2key(m)].available === true && !mediaStatus[filename2key(m)].required) {
+        logger.log("remove " + m)
+        fs.unlink(videosPrefix + filename, function(){
+          ddpclient.call('setPlayerMediaStatus', [{ 
+            playerId : raspberries[raspberryNumber].id, 
+            mediaId: filename2key(m), 
+            attr: 'available',
+            value: false
+          }], function(error, result){})       
+        })
+      }
+    }
+  }
+  
+
+
 }
 
 /*************** IP ****************/
@@ -648,24 +683,38 @@ raspberryNumber = 1
 
 var os = require('os');
 var ifaces = os.networkInterfaces();
+var hostname = os.hostname()
 
-if (ifaces.wlan0) {
-  ifaces.wlan0.forEach(function (iface) {
-    if ('IPv4' !== iface.family || iface.internal !== false) {
-      // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
-      return;
-    }
+var ip_assigned = false
 
-    for (var r in raspberries) {
-      if (raspberries[r].ip == iface.address) {
-        raspberryNumber = r
-      }
-    }
-
-  })
+// try hostname first
+for (var r in raspberries) {
+  if (raspberries[r].ip == hostname) {
+    raspberryNumber = r
+    ip_assigned = true
+  }
 }
 
-console.log ("This is cyborgplayer number " + raspberryNumber)
+// otherwise try assigned IPs
+if (!ip_assigned) {
+  if (ifaces.wlan0) {
+    ifaces.wlan0.forEach(function (iface) {
+      if ('IPv4' !== iface.family || iface.internal !== false) {
+        // skip over internal (i.e. 127.0.0.1) and non-ipv4 addresses
+        return;
+      }
+
+      for (var r in raspberries) {
+        if (raspberries[r].ip == iface.address) {
+          raspberryNumber = r
+        }
+      }
+
+    })
+  }
+}
+
+logger.log ("This is cyborgplayer number " + raspberryNumber)
 
 /*************** DDP ***************/
 
@@ -695,29 +744,33 @@ ddpclient.connect(function(error, wasReconnect) {
   // If autoReconnect is true, this callback will be invoked each time
   // a server connection is re-established
   if (error) {
-    console.log('DDP: connection error!');
+    logger.log('DDP: connection error!');
     return;
   }
 
   if (wasReconnect) {
-    console.log('DDP: Reestablishment of a connection.');
+    logger.log('DDP: Reestablishment of a connection.');
+    downloading = false // it's an assumption
   }
 
   ddpclient.subscribe(
     'players',                  // name of Meteor Publish function to subscribe to
     [{ noPingback : true, playerId: raspberries[raspberryNumber].id }],                       // any parameters used by the Publish function
     function () {             // callback when the subscription is complete
-      console.log('players complete:');
+      logger.log('players complete:');
       if (ddpclient.collections.players){
-        console.log(ddpclient.collections.players[raspberries[raspberryNumber].id]);
+        logger.log(ddpclient.collections.players[raspberries[raspberryNumber].id]);
         speak_system("connected")
+
+        ddpclient.call('playerPingback', [raspberries[raspberryNumber].id], function (error, result) {});
 
         ddpclient.subscribe(
           'media',                  // name of Meteor Publish function to subscribe to
           [],                       // any parameters used by the Publish function
           function () {             // callback when the subscription is complete
-            console.log('media complete:');
-            //console.log(ddpclient.collections.mediaavail)
+            logger.log('media complete:', ddpclient.collections.media);
+            updateMediaStatus()
+            //logger.log(ddpclient.collections.mediaavail)
 
           }
         );  
@@ -736,8 +789,8 @@ ddpclient.connect(function(error, wasReconnect) {
     'mediaavail',                  // name of Meteor Publish function to subscribe to
     [],                       // any parameters used by the Publish function
     function () {             // callback when the subscription is complete
-      console.log('mediaavail complete:');
-      //console.log(ddpclient.collections.mediaavail)
+      logger.log('mediaavail complete:');
+      //logger.log(ddpclient.collections.mediaavail)
       if (ddpclient.collections.mediaavail) {
         updatePlaylist(ddpclient.collections.mediaavail)
       }
@@ -747,7 +800,7 @@ ddpclient.connect(function(error, wasReconnect) {
 
   var media_observer = ddpclient.observe("media");
   media_observer.added = function(id) {
-    console.log("[ADDED] to " + media_observer.name + ":  " + id);
+    logger.log("[ADDED] to " + media_observer.name + ":  " + id);
     ddpclient.call('setPlayerMediaStatus', [{ 
       playerId : raspberries[raspberryNumber].id, 
       mediaId: filename2key(id), 
@@ -756,18 +809,22 @@ ddpclient.connect(function(error, wasReconnect) {
     }], function(error, result){})         
   }
 
+  media_observer.ready = function() {
+    logger.log("[READY] in " + media_observer.name);
+  }
+
   var observer = ddpclient.observe("players");
   observer.added = function(id) {
-    console.log("[ADDED] to " + observer.name + ":  " + id);
+    logger.log("[ADDED] to " + observer.name + ":  " + id);
   };
   observer.changed = function(id, oldFields, clearedFields, newFields) {
     if (id == raspberries[raspberryNumber].id) {
       
       /*
-      console.log("[CHANGED] in " + observer.name + ":  " + id);
-      console.log("[CHANGED] old field values: ", oldFields);
-      console.log("[CHANGED] cleared fields: ", clearedFields);
-      console.log("[CHANGED] new fields: ", newFields);   
+      logger.log("[CHANGED] in " + observer.name + ":  " + id);
+      logger.log("[CHANGED] old field values: ", oldFields);
+      logger.log("[CHANGED] cleared fields: ", clearedFields);
+      logger.log("[CHANGED] new fields: ", newFields);   
       */
          
       if (newFields.filename) {
@@ -837,27 +894,27 @@ ddpclient.connect(function(error, wasReconnect) {
         ddpclient.call('playerPingback', [raspberries[raspberryNumber].id], function (error, result) {});
       }      
       if (newFields.mediaStatus) {
-        console.log(newFields, oldFields)
+        logger.log(newFields, oldFields)
         downloadRemoteMedia()
       }
     }
   };
   observer.removed = function(id, oldValue) {
-    console.log("[REMOVED] in " + observer.name + ":  " + id);
-    console.log("[REMOVED] previous value: ", oldValue);
+    logger.log("[REMOVED] in " + observer.name + ":  " + id);
+    logger.log("[REMOVED] previous value: ", oldValue);
   };
 
 
   var availobserver = ddpclient.observe("mediaavail");
   availobserver.added = function(id) {
     updatePlaylist()
-    console.log("[ADDED] to " + availobserver.name + ":  " + id);
+    logger.log("[ADDED] to " + availobserver.name + ":  " + id);
     updatePlaylist()
     //speak_system("playlist updated")
   };
   availobserver.removed = function(id, oldValue) {
-    console.log("[REMOVED] in " + availobserver.name + ":  " + id);
-    console.log("[REMOVED] previous value: ", availobserver);
+    logger.log("[REMOVED] in " + availobserver.name + ":  " + id);
+    logger.log("[REMOVED] previous value: ", availobserver);
     updatePlaylist()
     //speak_system("playlist updated")
   };
@@ -865,8 +922,8 @@ ddpclient.connect(function(error, wasReconnect) {
 })
 
 function getMappingIndex() {
-  console.log("getMappingIndex " + videoIndex + " -> " + videoIndexMapping.indexOf(videoIndex))
-  console.log(videos, videoIndexMapping)  
+  logger.log("getMappingIndex " + videoIndex + " -> " + videoIndexMapping.indexOf(videoIndex))
+  logger.log(videos, videoIndexMapping)  
   if (videoIndexMapping.indexOf(videoIndex) >= 0)
     return videoIndexMapping.indexOf(videoIndex)
   else if (videoIndexMapping.indexOf(backupVideoIndex) >= 0)

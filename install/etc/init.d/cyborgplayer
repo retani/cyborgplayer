@@ -21,7 +21,7 @@ case "$1" in
   stop)
     echo "Stopping cyborgplayer"
     # kill application you want to stop
-    killall node
+    sudo forever stop /home/pi/cyborg/cyborgplayer.js
     ;;
   *)
     echo "Usage: /etc/init.d/noip {start|stop}"

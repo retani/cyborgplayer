@@ -1,3 +1,4 @@
+sudo rm /etc/init.d/cyborgplayer
 sudo ln install/etc/init.d/cyborgplayer /etc/init.d/cyborgplayer
 sudo update-rc.d cyborgplayer defaults
 sudo cp --backup install/boot/config.txt /boot/
